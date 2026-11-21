@@ -18,7 +18,7 @@ jobs:
         printf 'plugins { id("com.android.application") version "8.2.2" apply false; id("org.jetbrains.kotlin.android") version "1.9.22" apply false }\n' > build.gradle.kts
         mkdir -p app/src/main
         printf 'plugins { id("com.android.application"); id("org.jetbrains.kotlin.android") }\nandroid { namespace = "com.tpz.assistant"; compileSdk = 34; defaultConfig { applicationId = "com.tpz.assistant"; minSdk = 26; targetSdk = 33; versionCode = 1; versionName = "1.0" }; compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }; kotlinOptions { jvmTarget = "17" } }\ndependencies { implementation("androidx.core:core-ktx:1.12.0"); implementation("androidx.appcompat:appcompat:1.6.1"); implementation("com.google.android.material:material:1.11.0"); implementation("com.squareup.okhttp3:okhttp:4.12.0"); implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3") }\n' > app/build.gradle.kts
-        python3 -c 'import xml.etree.ElementTree as ET; k="android:"+"name"; m=ET.Element("manifest",{"xmlns:android":"http://android.com"}); [ET.SubElement(m,"uses-permission",{k:"android.permission."+p}) for p in ["INTERNET","RECORD_AUDIO","SYSTEM_ALERT_WINDOW","FOREGROUND_SERVICE","QUERY_ALL_PACKAGES"]]; a=ET.SubElement(m,"application",{"android:allowBackup":"true","android:label":"TPZ Gaming AI","android:theme":"@style/Theme.Material3.Dark.NoActionBar"}); ac=ET.SubElement(a,"activity",{k:".MainActivity","android:exported":"true"}); inf=ET.SubElement(ac,"intent-filter"); ET.SubElement(inf,"action",{k:"android.intent.action.MAIN"}); ET.SubElement(inf,"category",{k:"android.intent.category.LAUNCHER"}); ET.SubElement(a,"service",{k:".TpzOverlayService","android:enabled":"true","android:exported":"false"}); ET.ElementTree(m).write("app/src/main/AndroidManifest.xml")'
+        python3 -c 'import xml.etree.ElementTree as ET; ns="http://android.com"; ET.register_namespace("android",ns); k="{"+ns+"}name"; m=ET.Element("manifest"); [ET.SubElement(m,"uses-permission",{k:"android.permission."+p}) for p in ["INTERNET","RECORD_AUDIO","SYSTEM_ALERT_WINDOW","FOREGROUND_SERVICE","QUERY_ALL_PACKAGES"]]; a=ET.SubElement(m,"application",{"{"+ns+"}allowBackup":"true","{"+ns+"}label":"TPZ Gaming AI","{"+ns+"}theme":"@style/Theme.Material3.Dark.NoActionBar"}); ac=ET.SubElement(a,"activity",{k:".MainActivity","{"+ns+"}exported":"true"}); inf=ET.SubElement(ac,"intent-filter"); ET.SubElement(inf,"action",{k:"android.intent.action.MAIN"}); ET.SubElement(inf,"category",{k:"android.intent.category.LAUNCHER"}); ET.SubElement(a,"service",{k:".TpzOverlayService","{"+ns+"}enabled":"true","{"+ns+"}exported":"false"}); ET.ElementTree(m).write("app/src/main/AndroidManifest.xml")'
         find app/src -name "*.kt" -exec sed -i 's/val plane = image.planes/val plane = image.planes/g' {} +
     - uses: actions/setup-java@v4
       with:
@@ -33,16 +33,6 @@ jobs:
       with:
         name: TPZ-Gaming-AI-APK
         path: app/build/outputs/apk/debug/app-debug.apk
-
-
-
-
-
-
-
-
-
-
 
 
 
