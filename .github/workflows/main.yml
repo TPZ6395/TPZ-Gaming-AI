@@ -13,9 +13,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build Clean Gradle Project Files
+      - name: Generate Complete Clean TPZ App
         run: |
-          rm -f *.gradle *.gradle.kts app/*.gradle app/*.gradle.kts gradle.properties
+          rm -rf app/src/main/java app/src/main/AndroidManifest.xml *.gradle *.gradle.kts app/*.gradle app/*.gradle.kts gradle.properties
+          mkdir -p app/src/main/java/com/tpz/assistant
 
           cat << 'EOF' > gradle.properties
           org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
@@ -49,7 +50,6 @@ jobs:
           }
           EOF
 
-          mkdir -p app
           cat << 'EOF' > app/build.gradle.kts
           plugins {
               id("com.android.application")
@@ -82,25 +82,161 @@ jobs:
           }
           EOF
 
-          find app/src -name "*.kt" -exec sed -i 's/val plane = image.planes/val plane = image.planes/g' {} +
+          cat << 'EOF' > app/src/main/AndroidManifest.xml
+          <manifest xmlns:android="http://android.com">
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
+              <uses-permission android:name="android.permission.INTERNET" />
+              <uses-permission android:name="android.permission.RECORD_AUDIO" />
+              <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+              <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+              <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: '8.4'
-          build-scan-publish: false
+              <application
+                  android:allowBackup="true"
+                  android:label="TPZ Gaming AI"
+                  android:theme="@style/Theme.Material3.Dark.NoActionBar">
 
-      - name: Build Debug APK
-        run: gradle assembleDebug --no-daemon
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
 
-      - name: Upload TPZ APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: TPZ-Gaming-AI-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+                  <service
+                      android:name=".TpzOverlayService"
+                      android:enabled="true"
+                      android:exported="false" />
+              </application>
+          </manifest>
+          EOF
+
+          cat << 'EOF' > app/src/main/java/com/tpz/assistant/MainActivity.kt
+          package com.tpz.assistant
+
+          import android.Manifest
+          import android.app.Activity
+          import android.content.Context
+          import android.content.Intent
+          import android.content.pm.PackageManager
+          import android.media.projection.MediaProjectionManager
+          import android.net.Uri
+          import android.os.Bundle
+          import android.provider.Settings
+          import android.widget.*
+          import androidx.activity.result.contract.ActivityResultContracts
+          import androidx.appcompat.app.AppCompatActivity
+          import androidx.core.app.ActivityCompat
+          import androidx.core.content.ContextCompat
+
+          class MainActivity : AppCompatActivity() {
+
+              private lateinit var projectionManager: MediaProjectionManager
+
+              private val screenCaptureLauncher = registerForActivityResult(
+                  ActivityResultContracts.StartActivityForResult()
+              ) { result ->
+                  if (result.resultCode == Activity.RESULT_OK && result.data != null) {
+                      val serviceIntent = Intent(this, TpzOverlayService::class.java).apply {
+                          putExtra("RESULT_CODE", result.resultCode)
+                          putExtra("DATA", result.data)
+                      }
+                      startForegroundService(serviceIntent)
+                      Toast.makeText(this, "TPZ online! Say 'TPZ, time to game'", Toast.LENGTH_LONG).show()
+                  }
+              }
+
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+                  projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+
+                  if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                      ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 100)
+                  }
+
+                  val prefs = getSharedPreferences("TPZ_CONFIG", Context.MODE_PRIVATE)
+
+                  val layout = LinearLayout(this).apply {
+                      orientation = LinearLayout.VERTICAL
+                      setPadding(48, 64, 48, 48)
+                  }
+
+                  val title = TextView(this).apply {
+                      text = "TPZ // GAMING AI MANAGER"
+                      textSize = 22f
+                  }
+
+                  val apiKeyInput = EditText(this).apply {
+                      hint = "Enter OpenRouter / Open-Source API Key"
+                      setText(prefs.getString("AI_KEY", ""))
+                  }
+
+                  val customPromptInput = EditText(this).apply {
+                      hint = "TPZ Personality & Gamer Slang Rules"
+                      setText(prefs.getString("SYSTEM_PROMPT",
+                          "You are TPZ, my hype gaming duo and tactical co-pilot. Speak naturally like a real gamer using gaming slang (clutch, low HP, totem, aggro, meta, rotate, GG). Chat casually when chilling, and give fast 1-sentence tactical callouts mid-game."))
+                  }
+
+                  val emergencySwitch = Switch(this).apply {
+                      text = "Emergency Auto-Pop Watcher (Pops up when in danger)"
+                      isChecked = prefs.getBoolean("EMERGENCY_WATCH", true)
+                  }
+
+                  val activateBtn = Button(this).apply {
+                      text = "ACTIVATE TPZ OVERLAY & VOICE"
+                      setOnClickListener {
+                          prefs.edit()
+                              .putString("AI_KEY", apiKeyInput.text.toString().trim())
+                              .putString("SYSTEM_PROMPT", customPromptInput.text.toString())
+                              .putBoolean("EMERGENCY_WATCH", emergencySwitch.isChecked)
+                              .apply()
+
+                          if (!Settings.canDrawOverlays(this@MainActivity)) {
+                              val intent = Intent(
+                                  Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                  Uri.parse("package:$packageName")
+                              )
+                              startActivity(intent)
+                          } else {
+                              screenCaptureLauncher.launch(projectionManager.createScreenCaptureIntent())
+                          }
+                      }
+                  }
+
+                  layout.addView(title)
+                  layout.addView(apiKeyInput)
+                  layout.addView(customPromptInput)
+                  layout.addView(emergencySwitch)
+                  layout.addView(activateBtn)
+                  setContentView(layout)
+              }
+          }
+          EOF
+
+          cat << 'EOF' > app/src/main/java/com/tpz/assistant/TpzOverlayService.kt
+          package com.tpz.assistant
+
+          import android.app.*
+          import android.content.Context
+          import android.content.Intent
+          import android.graphics.Bitmap
+          import android.graphics.PixelFormat
+          import android.hardware.display.DisplayManager
+          import android.media.ImageReader
+          import android.media.projection.MediaProjection
+          import android.media.projection.MediaProjectionManager
+          import android.os.Bundle
+          import android.os.Handler
+          import android.os.IBinder
+          import android.os.Looper
+          import android.speech.RecognitionListener
+          import android.speech.RecognizerIntent
+          import android.speech.SpeechRecognizer
+          import android.speech.tts.TextToSpeech
+          import android.util.Base64
+          import android.view.Gravity
+          import android.view.View
+          import android.view.WindowManager
+          import android.widget.Button
