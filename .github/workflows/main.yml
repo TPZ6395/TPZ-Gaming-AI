@@ -240,3 +240,8 @@ jobs:
           import android.view.View
           import android.view.WindowManager
           import android.widget.Button
+          - name: Upload TPZ APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: TPZ-Gaming-AI-APK
+        path: app/build/outputs/apk/debug/app-debug.apk
