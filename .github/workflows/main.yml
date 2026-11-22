@@ -14,7 +14,8 @@ jobs:
       run: |
         rm -rf src *.gradle *.gradle.kts app/*.gradle app/*.gradle.kts gradle.properties
         mkdir -p app/src/main/res/mipmap-xxxhdpi app/src/main/res/drawable
-        python3 -c 'import glob, subprocess; files=glob.glob("logo.*"); files and subprocess.run(["convert", files[0], "-gravity", "center", "-crop", "1:1", "+repage", "-resize", "512x512", "app/src/main/res/mipmap-xxxhdpi/ic_launcher.png"]) and subprocess.run(["cp", "app/src/main/res/mipmap-xxxhdpi/ic_launcher.png", "app/src/main/res/drawable/tpz_logo.png"])'
+        sudo apt-get update && sudo apt-get install -y imagemagick
+        python3 -c 'import glob, subprocess; files=glob.glob("logo.*"); files and subprocess.run(["convert", files, "-gravity", "center", "-crop", "1:1", "+repage", "-resize", "512x512", "app/src/main/res/mipmap-xxxhdpi/ic_launcher.png"]) and subprocess.run(["cp", "app/src/main/res/mipmap-xxxhdpi/ic_launcher.png", "app/src/main/res/drawable/tpz_logo.png"])'
         printf "android.useAndroidX=true\n" > gradle.properties
         printf 'pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }\ndependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }\nrootProject.name = "TPZ"\ninclude(":app")\n' > settings.gradle.kts
         printf 'plugins { id("com.android.application") version "8.2.2" apply false; id("org.jetbrains.kotlin.android") version "1.9.22" apply false }\n' > build.gradle.kts
