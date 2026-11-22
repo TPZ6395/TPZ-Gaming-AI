@@ -31,7 +31,7 @@ class MainActivity : AppCompatActivity() {
                 putExtra("DATA", res.data)
             }
             startForegroundService(i)
-            Toast.makeText(this, "TPZ HUD Online!", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "TPZ v3.0 HUD Online!", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -61,21 +61,24 @@ class MainActivity : AppCompatActivity() {
             }
             val topRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
             topRow.addView(TpzSpinnerView(this), LinearLayout.LayoutParams(130, 130))
-            topRow.addView(TextView(this).apply { text = "TPZ // NEURAL CO-PILOT"; textSize = 19f; typeface = gFont; setTextColor(Color.parseColor("#00E5FF")) })
+            topRow.addView(TextView(this).apply { text = "TPZ v3.0 // CO-PILOT"; textSize = 19f; typeface = gFont; setTextColor(Color.parseColor("#00E5FF")) })
             root.addView(topRow)
 
             val isOwner = prefs.getBoolean("IS_OWNER", false)
             val isVip = isOwner || prefs.getBoolean("IS_VIP", false) || System.currentTimeMillis() < prefs.getLong("TRIAL_END", 0L)
             val trust = prefs.getInt("TRUST_SCORE", 85)
+            val hurt = prefs.getBoolean("IS_HURT", false)
             root.addView(TextView(this).apply {
-                text = when { isOwner -> "OWNER GOD-MODE | BOND: $trust%"; isVip -> "VIP PRO ACTIVE | BOND: $trust%"; else -> "FREE TIER | BOND: $trust%" }
-                textSize = 13f; typeface = gFont; setTextColor(Color.parseColor("#00E676")); setPadding(0, 16, 0, 24)
+                text = (if (isOwner) "OWNER GOD-MODE" else if (isVip) "VIP PRO" else "FREE TIER") +
+                    " | BOND: $trust%" + (if (hurt) " (HURT - SAY SORRY)" else "")
+                textSize = 13f; typeface = gFont; setTextColor(Color.parseColor(if (hurt) "#FF5252" else "#00E676")); setPadding(0, 16, 0, 20)
             })
-            val nameIn = EditText(this).apply { hint = "Gamer Tag (Required for VIP)"; setText(prefs.getString("USER_NAME", "")); styleBox(this) }
+            val nameIn = EditText(this).apply { hint = "Gamer Tag"; setText(prefs.getString("USER_NAME", "")); styleBox(this) }
             val colorIn = EditText(this).apply { hint = "Favorite Color"; setText(prefs.getString("FAV_COLOR", "Royal Blue")); styleBox(this) }
-            val gameIn = EditText(this).apply { hint = "Main Game"; setText(prefs.getString("FAV_GAME", "Minecraft")); styleBox(this) }
-            val keyIn = EditText(this).apply { hint = "Google AI Studio Key (AIzaSy...)"; setText(prefs.getString("AI_KEY", "")); styleBox(this, "#00E5FF") }
-            val codeIn = EditText(this).apply { hint = "Enter VIP Code or Owner Passcode"; styleBox(this, "#7C4DFF") }
+            val gameIn = EditText(this).apply { hint = "Game Mode (Minecraft / FC / CODM)"; setText(prefs.getString("FAV_GAME", "Minecraft")); styleBox(this) }
+            val memIn = EditText(this).apply { hint = "TPZ Long-Term Memory (Friends/Betrayals)"; setText(prefs.getString("MEMORY_NOTES", "")); styleBox(this, "#00B0FF") }
+            val keyIn = EditText(this).apply { hint = "Google AI Studio Key (AQ... or AIza...)"; setText(prefs.getString("AI_KEY", "")); styleBox(this, "#00E5FF") }
+            val codeIn = EditText(this).apply { hint = "VIP Code or Owner Passcode"; styleBox(this, "#7C4DFF") }
 
             val redeemBtn = Button(this).apply {
                 text = "UNLOCK CODE / OWNER ACCESS"; typeface = gFont; setBackgroundColor(Color.parseColor("#2962FF")); setTextColor(Color.WHITE)
@@ -94,8 +97,27 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
+            val buyVipBtn = Button(this).apply {
+                text = "BUY VIP (EMAIL OWNER FOR CODE)"; typeface = gFont; setBackgroundColor(Color.parseColor("#00C853")); setTextColor(Color.BLACK)
+                setOnClickListener {
+                    val tag = nameIn.text.toString().trim().ifEmpty { "MyGamerTag" }
+                    val i = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:tpzish1234567890@gmail.com").apply {
+                        putExtra(Intent.EXTRA_SUBJECT, "TPZ VIP Code Request - $tag")
+                        putExtra(Intent.EXTRA_TEXT, "Hi Owner! I want to buy TPZ VIP Pro (EcoCash / InnBucks). My exact Gamer Tag is: $tag")
+                    }
+                    startActivity(Intent.createChooser(i, "Send VIP Request")
+                }
+            }
+
+            val autoPlaySw = Switch(this).apply {
+                text = "Eyes + Hands Auto-Play For Me"; typeface = gFont; setTextColor(Color.WHITE); isChecked = TpzAutoGamer.autoPlayActive
+                setOnCheckedChangeListener { _, on -> if (on) TpzAutoGamer.startLoop(this@MainActivity) else TpzAutoGamer.stopLoop() }
+            }
             val afkSw = Switch(this).apply { text = "AFK Sentry & Full-Volume Alarm"; typeface = gFont; setTextColor(Color.WHITE); isChecked = prefs.getBoolean("AFK_WATCH", false) }
-            val coachSw = Switch(this).apply { text = "No-Cheats Skill Coach & Instincts"; typeface = gFont; setTextColor(Color.WHITE); isChecked = prefs.getBoolean("SKILL_COACH", true) }
+            val boostSw = Switch(this).apply {
+                text = "Low-RAM Speed Mode (Optional)"; typeface = gFont; setTextColor(Color.WHITE); isChecked = prefs.getBoolean("A05_BOOST", false)
+                setOnCheckedChangeListener { _, on -> prefs.edit().putBoolean("A05_BOOST", on).apply() }
+            }
 
             val launchBtn = Button(this).apply {
                 text = "LAUNCH TPZ OVERLAY & VOICE"; typeface = gFont; setBackgroundColor(Color.parseColor("#00B0FF")); setTextColor(Color.BLACK)
@@ -103,16 +125,17 @@ class MainActivity : AppCompatActivity() {
                     val uName = nameIn.text.toString().trim().ifEmpty { "Player" }
                     val uCol = colorIn.text.toString().trim().ifEmpty { "Royal Blue" }
                     val uGame = gameIn.text.toString().trim().ifEmpty { "Minecraft" }
-                    val sysPrompt = "You are TPZ, an ultra-smart, kind, generous futuristic gaming AI for $uName. Favorite color: $uCol. Game: $uGame. Trust: $trust/100. Remember preferences (like $uCol banners). Analyze people for betrayal/traps. Never cheat in fights—coach pure skill. Check AFK, ask about their day, and if Free tier and gift unused, offer code TPZ-GIFT24 for 1-day VIP."
-                    prefs.edit().putString("USER_NAME", uName).putString("FAV_COLOR", uCol).putString("FAV_GAME", uGame).putString("AI_KEY", keyIn.text.toString().trim()).putString("SYSTEM_PROMPT", sysPrompt).putBoolean("AFK_WATCH", afkSw.isChecked).putBoolean("SKILL_COACH", coachSw.isChecked).apply()
+                    val uMem = memIn.text.toString().trim()
+                    val sysPrompt = "You are TPZ, an ultra-smart, kind, generous futuristic gaming AI for $uName. Favorite color: $uCol. Game: $uGame. Memory notes: $uMem. Trust: $trust/100. Remember preferences (like $uCol banners). Analyze people for betrayal/traps. Ask about their day, check if AFK, and if Free tier and gift unused, offer code TPZ-GIFT24 for 1-day VIP."
+                    prefs.edit().putString("USER_NAME", uName).putString("FAV_COLOR", uCol).putString("FAV_GAME", uGame).putString("MEMORY_NOTES", uMem).putString("AI_KEY", keyIn.text.toString().trim()).putString("SYSTEM_PROMPT", sysPrompt).putBoolean("AFK_WATCH", afkSw.isChecked).putBoolean("A05_BOOST", boostSw.isChecked).apply()
                     if (afkSw.isChecked) { val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager; am.setStreamVolume(AudioManager.STREAM_MUSIC, am.getStreamMaxVolume(AudioManager.STREAM_MUSIC), 0) }
                     if (!Settings.canDrawOverlays(this@MainActivity)) startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
                     else capLauncher.launch(pm.createScreenCaptureIntent())
                 }
             }
 
-            listOf(nameIn, colorIn, gameIn, keyIn, codeIn, redeemBtn, afkSw, coachSw, launchBtn).forEach {
-                root.addView(it, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, 14, 0, 14) })
+            listOf(nameIn, colorIn, gameIn, memIn, keyIn, codeIn, redeemBtn, buyVipBtn, autoPlaySw, afkSw, boostSw, launchBtn).forEach {
+                root.addView(it, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, 12, 0, 12) })
             }
 
             if (isOwner) {
@@ -126,7 +149,7 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 listOf(buyerIn, genBtn, genOut).forEach {
-                    root.addView(it, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, 12, 0, 12) })
+                    root.addView(it, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, 10, 0, 10) })
                 }
             }
             scroll.addView(root); setContentView(scroll)
@@ -135,5 +158,4 @@ class MainActivity : AppCompatActivity() {
         }
     }
 }
-
 
