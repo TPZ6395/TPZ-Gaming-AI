@@ -1,4 +1,4 @@
-name: Build TPZ APK
+name: Build TPZ APK v2.0
 
 on:
   push:
@@ -10,49 +10,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - name: Prepare TPZ App With Logo Bubble & Spinning Ring
+    - name: Build Full TPZ v2.0 App
       run: |
         rm -rf src *.gradle *.gradle.kts app/*.gradle app/*.gradle.kts gradle.properties
-        mkdir -p app/src/main/res/mipmap-xxxhdpi app/src/main/res/drawable app/src/main/java/com/tpz/assistant
-        sudo apt-get update && sudo apt-get install -y imagemagick
+        mkdir -p app/src/main/res/mipmap-xxxhdpi app/src/main/res/drawable app/src/main/res/font
+        sudo apt-get update && sudo apt-get install -y imagemagick curl
+        curl -sL "https://github.com/google/fonts/raw/main/ofl/orbitron/Orbitron%5Bwght%5D.ttf" -o app/src/main/res/font/gamer_font.ttf || true
         python3 -c 'import glob, subprocess; f=next(iter(glob.glob("logo.*")), ""); f and subprocess.run(["convert", f, "-gravity", "center", "-crop", "1:1", "+repage", "-resize", "512x512", "app/src/main/res/mipmap-xxxhdpi/ic_launcher.png"]) and subprocess.run(["cp", "app/src/main/res/mipmap-xxxhdpi/ic_launcher.png", "app/src/main/res/drawable/tpz_logo.png"])'
         printf "android.useAndroidX=true\n" > gradle.properties
         printf 'pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }\ndependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }\nrootProject.name = "TPZ"\ninclude(":app")\n' > settings.gradle.kts
         printf 'plugins { id("com.android.application") version "8.2.2" apply false; id("org.jetbrains.kotlin.android") version "1.9.22" apply false }\n' > build.gradle.kts
-        printf 'plugins { id("com.android.application"); id("org.jetbrains.kotlin.android") }\nandroid { namespace = "com.tpz.assistant"; compileSdk = 34; defaultConfig { applicationId = "com.tpz.assistant"; minSdk = 26; targetSdk = 34; versionCode = 5; versionName = "1.4" }; compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }; kotlinOptions { jvmTarget = "17" } }\ndependencies { implementation("androidx.core:core-ktx:1.12.0"); implementation("androidx.appcompat:appcompat:1.6.1"); implementation("com.google.android.material:material:1.11.0"); implementation("com.squareup.okhttp3:okhttp:4.12.0"); implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3") }\n' > app/build.gradle.kts
-        printf 'PG1hbmlmZXN0IHhtbG5zOmFuZHJvaWQ9Imh0dHA6Ly9zY2hlbWFzLmFuZHJvaWQuY29tL2Fway9yZXMvYW5kcm9pZCI+CiAgPHVzZXMtcGVybWlzc2lvbiBhbmRyb2lkOm5hbWU9ImFuZHJvaWQucGVybWlzc2lvbi5JTlRFUk5FVCIgLz4KICA8dXNlcy1wZXJtaXNzaW9uIGFuZHJvaWQ6bmFtZT0iYW5kcm9pZC5wZXJtaXNzaW9uLlJFQ09SRF9BVURJTyIgLz4KICA8dXNlcy1wZXJtaXNzaW9uIGFuZHJvaWQ6bmFtZT0iYW5kcm9pZC5wZXJtaXNzaW9uLlNZU1RFTV9BTEVSVF9XSU5ET1ciIC8+CiAgPHVzZXMtcGVybWlzc2lvbiBhbmRyb2lkOm5hbWU9ImFuZHJvaWQucGVybWlzc2lvbi5GT1JFR1JPVU5EX1NFUlZJQ0UiIC8+CiAgPHVzZXMtcGVybWlzc2lvbiBhbmRyb2lkOm5hbWU9ImFuZHJvaWQucGVybWlzc2lvbi5GT1JFR1JPVU5EX1NFUlZJQ0VfTUVESUFfUFJPSkVDVElPTiIgLz4KICA8dXNlcy1wZXJtaXNzaW9uIGFuZHJvaWQ6bmFtZT0iYW5kcm9pZC5wZXJtaXNzaW9uLkZPUkVHUk9VTkRfU0VSVklDRV9NSUNST1BIT05FIiAvPgogIDx1c2VzLXBlcm1pc3Npb24gYW5kcm9pZDpuYW1lPSJhbmRyb2lkLnBlcm1pc3Npb24uUE9TVF9OT1RJRklDQVRJT05TIiAvPgogIDx1c2VzLXBlcm1pc3Npb24gYW5kcm9pZDpuYW1lPSJhbmRyb2lkLnBlcm1pc3Npb24uUVVFUllfQUxMX1BBQ0tBR0VTIiAvPgogIDxhcHBsaWNhdGlvbiBhbmRyb2lkOmFsbG93QmFja3VwPSJ0cnVlIiBhbmRyb2lkOmljb249IkBtaXBtYXAvaWNfbGF1bmNoZXIiIGFuZHJvaWQ6bGFiZWw9IlRQWiBHYW1pbmcgQUkiIGFuZHJvaWQ6dGhlbWU9IkBzdHlsZS9UaGVtZS5BcHBDb21wYXQuTm9BY3Rpb25CYXIiPgogICAgPGFjdGl2aXR5IGFuZHJvaWQ6bmFtZT0iLk1haW5BY3Rpdml0eSIgYW5kcm9pZDpleHBvcnRlZD0idHJ1ZSI+CiAgICAgIDxpbnRlbnQtZmlsdGVyPgogICAgICAgIDxhY3Rpb24gYW5kcm9pZDpuYW1lPSJhbmRyb2lkLmludGVudC5hY3Rpb24uTUFJTiIgLz4KICAgICAgICA8Y2F0ZWdvcnkgYW5kcm9pZDpuYW1lPSJhbmRyb2lkLmludGVudC5jYXRlZ29yeS5MQVVOQ0hFUiIgLz4KICAgICAgPC9pbnRlbnQtZmlsdGVyPgogICAgPC9hY3Rpdml0eT4KICAgIDxzZXJ2aWNlIGFuZHJvaWQ6bmFtZT0iLlRwek92ZXJsYXlTZXJ2aWNlIiBhbmRyb2lkOmVuYWJsZWQ9InRydWUiIGFuZHJvaWQ6ZXhwb3J0ZWQ9ImZhbHNlIiBhbmRyb2lkOmZvcmVncm91bmRTZXJ2aWNlVHlwZT0ibWVkaWFQcm9qZWN0aW9ufG1pY3JvcGhvbmUiIC8+CiAgPC9hcHBsaWNhdGlvbj4KPC9tYW5pZmVzdD4K' | base64 -d > app/src/main/AndroidManifest.xml
-        cat << 'EOF' > app/src/main/java/com/tpz/assistant/TpzSpinnerView.kt
-        package com.tpz.assistant
-        import android.content.Context
-        import android.graphics.*
-        import android.view.View
-        class TpzSpinnerView(context: Context) : View(context) {
-            private var angle = 0f
-            private val ringPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = Color.parseColor("#2962FF")
-                style = Paint.Style.STROKE
-                strokeWidth = 10f
-                strokeCap = Paint.Cap.ROUND
-            }
-            private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = Color.parseColor("#00E5FF")
-                textSize = 36f
-                textAlign = Paint.Align.CENTER
-                typeface = Typeface.DEFAULT_BOLD
-            }
-            override fun onDraw(canvas: Canvas) {
-                super.onDraw(canvas)
-                val cx = width / 2f; val cy = height / 2f; val r = (minOf(width, height) / 2f) - 16f
-                canvas.drawArc(cx - r, cy - r, cx + r, cy + r, angle, 270f, false, ringPaint)
-                canvas.save(); canvas.rotate(-angle * 0.5f, cx, cy)
-                canvas.drawText("TPZ", cx, cy + 12f, textPaint)
-                canvas.restore()
-                angle = (angle + 8f) % 360f
-                postInvalidateOnAnimation()
-            }
-        }
-        EOF
-        find app/src -name "*.kt" -exec sed -i 's/val plane = image.planes/val plane = image.planes/g; s/startForeground(101, notification)/if (android.os.Build.VERSION.SDK_INT >= 34) startForeground(101, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE) else startForeground(101, notification)/g; s/super.onCreate(savedInstanceState)/super.onCreate(savedInstanceState); try {/g; s/setContentView(layout)/layout.addView(TpzSpinnerView(this), LinearLayout.LayoutParams(160, 160)); setContentView(layout) } catch (e: Exception) { setContentView(TextView(this).apply { text = "Error: " + e.message }) }/g; s/hudLayout.addView(statusText)/val logoBadge = android.widget.ImageView(this).apply { setImageResource(R.drawable.tpz_logo); scaleType = android.widget.ImageView.ScaleType.CENTER_CROP; clipToOutline = true; outlineProvider = android.view.ViewOutlineProvider.OVAL }; hudLayout.addView(logoBadge, android.widget.LinearLayout.LayoutParams(96, 96)); hudLayout.addView(TpzSpinnerView(this), android.widget.LinearLayout.LayoutParams(80, 80)); hudLayout.addView(statusText)/g' {} +
+        printf 'plugins { id("com.android.application"); id("org.jetbrains.kotlin.android") }\nandroid { namespace = "com.tpz.assistant"; compileSdk = 34; defaultConfig { applicationId = "com.tpz.assistant"; minSdk = 26; targetSdk = 34; versionCode = 6; versionName = "2.0" }; compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }; kotlinOptions { jvmTarget = "17" } }\ndependencies { implementation("androidx.core:core-ktx:1.12.0"); implementation("androidx.appcompat:appcompat:1.6.1"); implementation("com.google.android.material:material:1.11.0"); implementation("com.squareup.okhttp3:okhttp:4.12.0"); implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3") }\n' > app/build.gradle.kts
+        printf 'PG1hbmlmZXN0IHhtbG5zOmFuZHJvaWQ9Imh0dHA6Ly9zY2hlbWFzLmFuZHJvaWQuY29tL2Fway9yZXMvYW5kcm9pZCI+CiAgPHVzZXMtcGVybWlzc2lvbiBhbmRyb2lkOm5hbWU9ImFuZHJvaWQucGVybWlzc2lvbi5JTlRFUk5FVCIgLz4KICA8dXNlcy1wZXJtaXNzaW9uIGFuZHJvaWQ6bmFtZT0iYW5kcm9pZC5wZXJtaXNzaW9uLlJFQ09SRF9BVURJTyIgLz4KICA8dXNlcy1wZXJtaXNzaW9uIGFuZHJvaWQ6bmFtZT0iYW5kcm9pZC5wZXJtaXNzaW9uLlNZU1RFTV9BTEVSVF9XSU5ET1ciIC8+CiAgPHVzZXMtcGVybWlzc2lvbiBhbmRyb2lkOm5hbWU9ImFuZHJvaWQucGVybWlzc2lvbi5GT1JFR1JPVU5EX1NFUlZJQ0UiIC8+CiAgPHVzZXMtcGVybWlzc2lvbiBhbmRyb2lkOm5hbWU9ImFuZHJvaWQucGVybWlzc2lvbi5GT1JFR1JPVU5EX1NFUlZJQ0VfTUVESUFfUFJPSkVDVElPTiIgLz4KICA8dXNlcy1wZXJtaXNzaW9uIGFuZHJvaWQ6bmFtZT0iYW5kcm9pZC5wZXJtaXNzaW9uLkZPUkVHUk9VTkRfU0VSVklDRV9NSUNST1BIT05FIiAvPgogIDx1c2VzLXBlcm1pc3Npb24gYW5kcm9pZDpuYW1lPSJhbmRyb2lkLnBlcm1pc3Npb24uUE9TVF9OT1RJRklDQVRJT05TIiAvPgogIDx1c2VzLXBlcm1pc3Npb24gYW5kcm9pZDpuYW1lPSJhbmRyb2lkLnBlcm1pc3Npb24uTU9ESUZZX0FVRElPX1NFVFRJTkdTIiAvPgogIDx1c2VzLXBlcm1pc3Npb24gYW5kcm9pZDpuYW1lPSJhbmRyb2lkLnBlcm1pc3Npb24uUVVFUllfQUxMX1BBQ0tBR0VTIiAvPgogIDxhcHBsaWNhdGlvbiBhbmRyb2lkOmFsbG93QmFja3VwPSJ0cnVlIiBhbmRyb2lkOmljb249IkBtaXBtYXAvaWNfbGF1bmNoZXIiIGFuZHJvaWQ6bGFiZWw9IlRQWiBHYW1pbmcgQUkiIGFuZHJvaWQ6dGhlbWU9IkBzdHlsZS9UaGVtZS5BcHBDb21wYXQuTm9BY3Rpb25CYXIiPgogICAgPGFjdGl2aXR5IGFuZHJvaWQ6bmFtZT0iLk1haW5BY3Rpdml0eSIgYW5kcm9pZDpleHBvcnRlZD0idHJ1ZSI+CiAgICAgIDxpbnRlbnQtZmlsdGVyPgogICAgICAgIDxhY3Rpb24gYW5kcm9pZDpuYW1lPSJhbmRyb2lkLmludGVudC5hY3Rpb24uTUFJTiIgLz4KICAgICAgICA8Y2F0ZWdvcnkgYW5kcm9pZDpuYW1lPSJhbmRyb2lkLmludGVudC5jYXRlZ29yeS5MQVVOQ0hFUiIgLz4KICAgICAgPC9pbnRlbnQtZmlsdGVyPgogICAgPC9hY3Rpdml0eT4KICAgIDxzZXJ2aWNlIGFuZHJvaWQ6bmFtZT0iLlRwek92ZXJsYXlTZXJ2aWNlIiBhbmRyb2lkOmVuYWJsZWQ9InRydWUiIGFuZHJvaWQ6ZXhwb3J0ZWQ9ImZhbHNlIiBhbmRyb2lkOmZvcmVncm91bmRTZXJ2aWNlVHlwZT0ibWVkaWFQcm9qZWN0aW9ufG1pY3JvcGhvbmUiIC8+CiAgPC9hcHBsaWNhdGlvbj4KPC9tYW5pZmVzdD4K' | base64 -d > app/src/main/AndroidManifest.xml
+        find app/src -name "TpzOverlayService.kt" -exec sed -i 's/val plane = image.planes/val plane = image.planes/g; s/startForeground(101, notification)/if (android.os.Build.VERSION.SDK_INT >= 34) startForeground(101, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE) else startForeground(101, notification)/g; s/hudLayout.addView(statusText)/val logoBadge = android.widget.ImageView(this).apply { setImageResource(R.drawable.tpz_logo); scaleType = android.widget.ImageView.ScaleType.CENTER_CROP; clipToOutline = true; outlineProvider = android.view.ViewOutlineProvider.OVAL }; hudLayout.addView(logoBadge, android.widget.LinearLayout.LayoutParams(96, 96)); hudLayout.addView(TpzSpinnerView(this), android.widget.LinearLayout.LayoutParams(80, 80)); hudLayout.addView(statusText)/g' {} +
     - uses: actions/setup-java@v4
       with:
         java-version: '17'
@@ -66,4 +36,3 @@ jobs:
       with:
         name: TPZ-Gaming-AI-APK
         path: app/build/outputs/apk/debug/app-debug.apk
-
