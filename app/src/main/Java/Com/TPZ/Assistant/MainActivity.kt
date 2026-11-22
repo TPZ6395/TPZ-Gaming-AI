@@ -18,6 +18,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
+import java.security.MessageDigest
 
 class MainActivity : AppCompatActivity() {
     private lateinit var pm: MediaProjectionManager
@@ -32,6 +33,14 @@ class MainActivity : AppCompatActivity() {
             startForegroundService(i)
             Toast.makeText(this, "TPZ HUD Online!", Toast.LENGTH_LONG).show()
         }
+    }
+
+    private fun makeVipCode(gamerTag: String): String {
+        val clean = gamerTag.trim().uppercase().ifEmpty { "PLAYER" }
+        val bytes = MessageDigest.getInstance("SHA-256")
+            .digest("TPZ_SECRET_6395_ZW:$clean".toByteArray())
+        val hex = bytes.joinToString("") { "%02X".format(it) }
+        return "TPZ-${hex.substring(0, 4)}-${hex.substring(4, 8)}"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -62,24 +71,25 @@ class MainActivity : AppCompatActivity() {
                 text = when { isOwner -> "OWNER GOD-MODE | BOND: $trust%"; isVip -> "VIP PRO ACTIVE | BOND: $trust%"; else -> "FREE TIER | BOND: $trust%" }
                 textSize = 13f; typeface = gFont; setTextColor(Color.parseColor("#00E676")); setPadding(0, 16, 0, 24)
             })
-            val nameIn = EditText(this).apply { hint = "Gamer Tag"; setText(prefs.getString("USER_NAME", "")); styleBox(this) }
+            val nameIn = EditText(this).apply { hint = "Gamer Tag (Required for VIP)"; setText(prefs.getString("USER_NAME", "")); styleBox(this) }
             val colorIn = EditText(this).apply { hint = "Favorite Color"; setText(prefs.getString("FAV_COLOR", "Royal Blue")); styleBox(this) }
             val gameIn = EditText(this).apply { hint = "Main Game"; setText(prefs.getString("FAV_GAME", "Minecraft")); styleBox(this) }
-            val keyIn = EditText(this).apply { hint = "OpenRouter API Key (sk-or-v1-...)"; setText(prefs.getString("AI_KEY", "")); styleBox(this, "#00E5FF") }
-            val codeIn = EditText(this).apply { hint = "VIP Code or Owner Passcode"; styleBox(this, "#7C4DFF") }
+            val keyIn = EditText(this).apply { hint = "Google AI Studio Key (AIzaSy...)"; setText(prefs.getString("AI_KEY", "")); styleBox(this, "#00E5FF") }
+            val codeIn = EditText(this).apply { hint = "Enter VIP Code or Owner Passcode"; styleBox(this, "#7C4DFF") }
 
             val redeemBtn = Button(this).apply {
                 text = "UNLOCK CODE / OWNER ACCESS"; typeface = gFont; setBackgroundColor(Color.parseColor("#2962FF")); setTextColor(Color.WHITE)
                 setOnClickListener {
                     val c = codeIn.text.toString().trim().uppercase()
+                    val tag = nameIn.text.toString().trim()
                     when {
                         c == "TPZ-OWNER-6395" -> { prefs.edit().putBoolean("IS_OWNER", true).putBoolean("IS_VIP", true).apply(); Toast.makeText(this@MainActivity, "OWNER GOD-MODE UNLOCKED!", Toast.LENGTH_LONG).show(); recreate() }
                         c == "TPZ-GIFT24" -> {
                             if (prefs.getBoolean("USED_FREE_GIFT", false)) Toast.makeText(this@MainActivity, "24h VIP Gift already used!", Toast.LENGTH_LONG).show()
                             else { prefs.edit().putBoolean("USED_FREE_GIFT", true).putLong("TRIAL_END", System.currentTimeMillis() + 86400000L).apply(); Toast.makeText(this@MainActivity, "24h VIP Pass Activated!", Toast.LENGTH_LONG).show(); recreate() }
                         }
-                        c in listOf("TPZ-PRO-8821", "TPZ-ELITE-9940", "TPZ-VIP-2026") -> { prefs.edit().putBoolean("IS_VIP", true).apply(); Toast.makeText(this@MainActivity, "VIP PRO UNLOCKED!", Toast.LENGTH_LONG).show(); recreate() }
-                        else -> Toast.makeText(this@MainActivity, "Invalid Code!", Toast.LENGTH_SHORT).show()
+                        tag.isNotEmpty() && c == makeVipCode(tag) -> { prefs.edit().putBoolean("IS_VIP", true).apply(); Toast.makeText(this@MainActivity, "VIP PRO UNLOCKED FOR $tag!", Toast.LENGTH_LONG).show(); recreate() }
+                        else -> Toast.makeText(this@MainActivity, "Invalid Code or Gamer Tag!", Toast.LENGTH_SHORT).show()
                     }
                 }
             }
@@ -104,11 +114,20 @@ class MainActivity : AppCompatActivity() {
             listOf(nameIn, colorIn, gameIn, keyIn, codeIn, redeemBtn, afkSw, coachSw, launchBtn).forEach {
                 root.addView(it, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, 14, 0, 14) })
             }
+
             if (isOwner) {
-                root.addView(TextView(this).apply {
-                    text = "OWNER VAULT // VIP CODES:\nPro: TPZ-PRO-8821 | Elite: TPZ-ELITE-9940 | Season: TPZ-VIP-2026 | Gift: TPZ-GIFT24"
-                    textSize = 13f; styleBox(this, "#00E676")
-                })
+                val buyerIn = EditText(this).apply { hint = "Buyer's Exact Gamer Tag"; styleBox(this, "#00E676") }
+                val genOut = TextView(this).apply { text = "OWNER VIP GENERATOR READY\n1-Day Gift Code: TPZ-GIFT24"; textSize = 13f; styleBox(this, "#00E676") }
+                val genBtn = Button(this).apply {
+                    text = "GENERATE UNGUESSABLE VIP CODE"; typeface = gFont; setBackgroundColor(Color.parseColor("#00E676")); setTextColor(Color.BLACK)
+                    setOnClickListener {
+                        val b = buyerIn.text.toString().trim()
+                        if (b.isNotEmpty()) genOut.text = "BUYER: $b\nUNIQUE VIP CODE: ${makeVipCode(b)}\n(Locked to $b's Gamer Tag only!)"
+                    }
+                }
+                listOf(buyerIn, genBtn, genOut).forEach {
+                    root.addView(it, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { setMargins(0, 12, 0, 12) })
+                }
             }
             scroll.addView(root); setContentView(scroll)
         } catch (e: Exception) {
@@ -116,4 +135,5 @@ class MainActivity : AppCompatActivity() {
         }
     }
 }
+
 
