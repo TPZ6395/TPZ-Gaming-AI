@@ -1,0 +1,24 @@
+name: Build TPZ Windows PC EXE
+
+on:
+  push:
+    paths: [ "tpz_pc.py", ".github/workflows/build_pc.yml" ]
+  workflow_dispatch:
+
+jobs:
+  build-exe:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    - name: Build TPZ PC EXE With Custom Icon
+      run: |
+        pip install pyinstaller pillow pyautogui mss requests
+        python -c "import glob; from PIL import Image; f=next(iter(glob.glob('logo.*')), ''); f and Image.open(f).resize((256,256)).save('tpz.ico')"
+        if (Test-Path tpz.ico) { pyinstaller --onefile --windowed --icon=tpz.ico --name TPZ-Gaming-AI-PC tpz_pc.py } else { pyinstaller --onefile --windowed --name TPZ-Gaming-AI-PC tpz_pc.py }
+    - uses: actions/upload-artifact@v4
+      with:
+        name: TPZ-Gaming-AI-Windows-EXE
+        path: dist/TPZ-Gaming-AI-PC.exe
