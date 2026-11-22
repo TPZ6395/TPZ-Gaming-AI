@@ -13,7 +13,7 @@ jobs:
     - name: Prepare TPZ App With Logo Bubble & Spinning Ring
       run: |
         rm -rf src *.gradle *.gradle.kts app/*.gradle app/*.gradle.kts gradle.properties
-        mkdir -p app/src/main/res/mipmap-xxxhdpi app/src/main/res/drawable
+        mkdir -p app/src/main/res/mipmap-xxxhdpi app/src/main/res/drawable app/src/main/java/com/tpz/assistant
         sudo apt-get update && sudo apt-get install -y imagemagick
         python3 -c 'import glob, subprocess; f=next(iter(glob.glob("logo.*")), ""); f and subprocess.run(["convert", f, "-gravity", "center", "-crop", "1:1", "+repage", "-resize", "512x512", "app/src/main/res/mipmap-xxxhdpi/ic_launcher.png"]) and subprocess.run(["cp", "app/src/main/res/mipmap-xxxhdpi/ic_launcher.png", "app/src/main/res/drawable/tpz_logo.png"])'
         printf "android.useAndroidX=true\n" > gradle.properties
@@ -66,3 +66,4 @@ jobs:
       with:
         name: TPZ-Gaming-AI-APK
         path: app/build/outputs/apk/debug/app-debug.apk
+
