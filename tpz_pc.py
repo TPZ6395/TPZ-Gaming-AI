@@ -180,7 +180,7 @@ class TpzPCApp:
         tk.Button(win, text="SUBMIT CODE", bg="#2962FF", fg="white",
                   font=("Consolas", 10, "bold"),
                   command=check).pack(fill="x", padx=20, pady=6)
-        mail = f"mailto:yourname@://gmail.com{urllib.parse.quote(self.cfg['user'])}"
+        mail = f"mailto:tpzish1234567890@://gmail.com{urllib.parse.quote(self.cfg['user'])}"
         tk.Button(win, text="BUY VIP (EMAIL OWNER)", bg="#00C853", fg="black",
                   font=("Consolas", 10, "bold"),
                   command=lambda: webbrowser.open(mail)).pack(fill="x", padx=20, pady=6)
